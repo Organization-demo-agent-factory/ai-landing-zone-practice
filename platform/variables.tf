@@ -30,7 +30,16 @@ variable "tags" {
 
 variable "existing_vnet_resource_id" {
   type        = string
-  description = "Resource ID of the existing non-prod /20 VNet that the network team created and linked to the hub."
+  description = "Resource ID of the existing non-prod VNet that the network team created and linked to the hub."
+}
+
+variable "subnet_address_prefixes" {
+  type = object({
+    private_endpoint = string
+    ai_foundry       = string
+    app_gateway      = string
+  })
+  description = "Prefixes for the three subnets the module creates inside your VNet. Each must sit inside the VNet's address space and not overlap anything else. Suggested sizes: private_endpoint /25, ai_foundry /24, app_gateway /26."
 }
 
 variable "dns_zones_resource_group_id" {
@@ -67,18 +76,6 @@ variable "apim_publisher_email" {
 variable "apim_publisher_name" {
   type        = string
   description = "Gateway owner display name."
-}
-
-variable "apim_sku_root" {
-  type        = string
-  default     = "Developer"
-  description = "Gateway tier. Module default is Premium."
-}
-
-variable "apim_sku_capacity" {
-  type        = number
-  default     = 1
-  description = "Gateway units. Module default is 3."
 }
 
 variable "enable_telemetry" {

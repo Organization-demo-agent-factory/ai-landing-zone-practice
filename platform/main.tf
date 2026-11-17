@@ -15,6 +15,17 @@ module "ai_landing_zone" {
         vnet_resource_id = var.existing_vnet_resource_id
       }
     }
+    # The module's default subnet sizes assume a /20, so set each prefix explicitly.
+    # The module attaches its NSG to every subnet it creates. Keep ContainerAppEnvironmentSubnet off:
+    # the module gives it no NSG, which a Deny-Subnet-Without-Nsg policy would block.
+    subnets = {
+      PrivateEndpointSubnet         = { address_prefix = var.subnet_address_prefixes.private_endpoint }
+      AIFoundrySubnet               = { address_prefix = var.subnet_address_prefixes.ai_foundry }
+      AppGatewaySubnet              = { address_prefix = var.subnet_address_prefixes.app_gateway }
+      APIMSubnet                    = { enabled = false } # the gateway is deployed next to this module, not by it
+      ContainerAppEnvironmentSubnet = { enabled = false }
+      DevOpsBuildSubnet             = { enabled = false }
+    }
   }
 
   # The platform team owns hub, routing and DNS. This also keeps the demo VMs, bastion and firewall out.
@@ -25,12 +36,14 @@ module "ai_landing_zone" {
     azure_policy_pe_zone_linking_enabled      = var.pe_dns_registration_by_policy
   }
 
-  # AI gateway: Developer x1 for non-prod (module default is Premium x3, about $8.4K a month).
+  # AI gateway: the platform team deploys API Management next to this module, with its own code, because in
+  # platform mode the module's APIM subnet gets no route table (Internal-mode APIM then fails with
+  # 422 ManagementApiRequestFailed on port 3443 when 0.0.0.0/0 is forced through a firewall).
+  # The module still reads these two values when its own gateway is off.
   apim_definition = {
+    deploy          = false
     publisher_email = var.apim_publisher_email
     publisher_name  = var.apim_publisher_name
-    sku_root        = var.apim_sku_root
-    sku_capacity    = var.apim_sku_capacity
   }
 
   # Foundry account and project. No model deployments: the foundation only.
@@ -68,6 +81,10 @@ module "ai_landing_zone" {
         secondary_regions = [
           { location = var.location, zone_redundant = false, failover_priority = 0 }
         ]
+        # Cost guard: the module default (-1) is uncapped. Agent Service needs at least 3,000 RU/s in total.
+        capacity = {
+          total_throughput_limit = 3000
+        }
       }
     }
 
