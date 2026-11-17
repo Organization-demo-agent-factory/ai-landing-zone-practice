@@ -1,0 +1,105 @@
+name: ai-landing-zone-nonprod
+
+on:
+  pull_request:
+    paths: ["platform/**"]
+  push:
+    branches: [main]
+    paths: ["platform/**"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ai-lz-nonprod
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+
+jobs:
+  plan:
+    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    environment: nonprod-plan
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: platform
+    env:
+      ARM_CLIENT_ID: ${{ vars.PLAN_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Init
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.TF_STATE_RG }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_SA }}"
+          -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}"
+          -backend-config="key=ai-lz-nonprod.tfstate"
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: terraform plan -input=false -var-file=nonprod.tfvars -out=tfplan
+
+      - name: Plan summary
+        run: terraform show -no-color tfplan | tee plan.txt
+
+      - name: Upload plan
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: platform/tfplan
+          retention-days: 1
+
+  apply:
+    needs: plan
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    environment: nonprod-apply # required reviewers = your approvers
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: platform
+    env:
+      ARM_CLIENT_ID: ${{ vars.APPLY_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: platform
+
+      - name: Init
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.TF_STATE_RG }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_SA }}"
+          -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}"
+          -backend-config="key=ai-lz-nonprod.tfstate"
+
+      - name: Apply the reviewed plan
+        run: terraform apply -input=false tfplan
