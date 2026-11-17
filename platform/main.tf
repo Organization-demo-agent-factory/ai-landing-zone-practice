@@ -63,6 +63,11 @@ module "ai_landing_zone" {
     cosmosdb_definition = {
       this = {
         consistency_level = "Session"
+        # An empty list makes the module add the paired region (East US for West US 3) as a second location.
+        # One entry with only the primary region keeps the account single-region.
+        secondary_regions = [
+          { location = var.location, zone_redundant = false, failover_priority = 0 }
+        ]
       }
     }
 
