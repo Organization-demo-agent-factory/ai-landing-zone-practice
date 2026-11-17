@@ -16,6 +16,13 @@ tags = {
 existing_vnet_resource_id   = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>"
 dns_zones_resource_group_id = "/subscriptions/<sub>/resourceGroups/<dns-rg>"
 
+# Prefixes for the subnets the module creates. They must sit inside your VNet and not overlap anything.
+subnet_address_prefixes = {
+  private_endpoint = "<x.x.x.0/25>"
+  ai_foundry       = "<x.x.x.0/24>"
+  app_gateway      = "<x.x.x.0/26>"
+}
+
 # true if your Azure Policy adds private endpoint DNS records, false if the module should
 pe_dns_registration_by_policy = true
 
@@ -25,4 +32,4 @@ project_description  = "<description>"
 
 apim_publisher_email = "<shared-mailbox@your-domain.com>"
 apim_publisher_name  = "<owner display name>"
-# apim_sku_root and apim_sku_capacity default to Developer and 1 (non-prod)
+# The module does not build the gateway: API Management is deployed next to it (see main.tf).
