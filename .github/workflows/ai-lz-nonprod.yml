@@ -71,7 +71,7 @@ jobs:
   apply:
     needs: plan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    runs-on: ubuntu-latest
     environment: nonprod-apply # required reviewers = your approvers
     timeout-minutes: 180
     defaults:
