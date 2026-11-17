@@ -12,6 +12,12 @@ tags = {
 existing_vnet_resource_id   = "/subscriptions/75eac871-7f67-4bc8-8691-d0a947bc0358/resourceGroups/rg-practice-net/providers/Microsoft.Network/virtualNetworks/vnet-practice"
 dns_zones_resource_group_id = "/subscriptions/75eac871-7f67-4bc8-8691-d0a947bc0358/resourceGroups/rg-practice-dns"
 
+subnet_address_prefixes = {
+  private_endpoint = "10.50.0.0/25"
+  app_gateway      = "10.50.0.128/26"
+  ai_foundry       = "10.50.1.0/24"
+}
+
 pe_dns_registration_by_policy = false
 
 project_name         = "platform"
