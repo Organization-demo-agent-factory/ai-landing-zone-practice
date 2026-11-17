@@ -23,7 +23,7 @@ env:
 
 jobs:
   plan:
-    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    runs-on: ubuntu-latest
     environment: nonprod-plan
     timeout-minutes: 60
     defaults:
