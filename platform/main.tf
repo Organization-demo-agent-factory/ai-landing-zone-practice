@@ -93,6 +93,34 @@ module "ai_landing_zone" {
   jumpvm_definition                    = { deploy = false }
   bastion_definition                   = { deploy = false }
   firewall_definition                  = { deploy = false }
+
+  # The module reads this input even when the gateway is off, so it must be set.
+  # deploy = false means no Application Gateway is created; the entries below only satisfy the input schema.
+  app_gateway_definition = {
+    deploy = false
+    backend_address_pools = {
+      placeholder = { name = "placeholder-pool" }
+    }
+    backend_http_settings = {
+      placeholder = { name = "placeholder-settings", port = 80, protocol = "Http" }
+    }
+    frontend_ports = {
+      placeholder = { name = "placeholder-port", port = 80 }
+    }
+    http_listeners = {
+      placeholder = { name = "placeholder-listener", frontend_port_name = "placeholder-port" }
+    }
+    request_routing_rules = {
+      placeholder = {
+        name                       = "placeholder-rule"
+        rule_type                  = "Basic"
+        http_listener_name         = "placeholder-listener"
+        backend_address_pool_name  = "placeholder-pool"
+        backend_http_settings_name = "placeholder-settings"
+        priority                   = 100
+      }
+    }
+  }
 }
 
 output "ai_landing_zone_resource_id" {
