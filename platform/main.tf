@@ -50,7 +50,7 @@ module "ai_landing_zone" {
   ai_foundry_definition = {
     ai_foundry = {
       disable_local_auth      = true
-      create_ai_agent_service = false # open item: confirm Agent Service in the foundation
+      create_ai_agent_service = true # Agent Service on
     }
 
     ai_projects = {
@@ -76,14 +76,17 @@ module "ai_landing_zone" {
     cosmosdb_definition = {
       this = {
         consistency_level = "Session"
+        # Key auth stays on for this account in 0.5.3 whatever you set here: the Cosmos module (0.10.0) applies
+        # local_authentication_disabled only when SQL databases are defined in Terraform. Audit it with Azure Policy.
         # An empty list makes the module add the paired region (East US for West US 3) as a second location.
         # One entry with only the primary region keeps the account single-region.
         secondary_regions = [
           { location = var.location, zone_redundant = false, failover_priority = 0 }
         ]
-        # Cost guard: the module default (-1) is uncapped. Agent Service needs at least 3,000 RU/s in total.
+        # Cost guard: the module default (-1) is uncapped. Agent Service needs 3,000 RU/s to set up and up to
+        # 5,000 RU/s per project once agents use the Responses API, so cap at 5,000 per project.
         capacity = {
-          total_throughput_limit = 3000
+          total_throughput_limit = 5000
         }
       }
     }
