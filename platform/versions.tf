@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    modtm = {
+      source  = "azure/modtm"
+      version = "~> 0.3"
+    }
   }
 
   # Backend values are passed with -backend-config in the workflow (one state key per environment).
@@ -31,4 +35,10 @@ provider "azapi" {
   subscription_id = var.subscription_id
   tenant_id       = var.tenant_id
   use_oidc        = true
+}
+
+# AVM telemetry off (customer decision). In module 0.5.3 enable_telemetry does not reach two
+# nested modules (regions and NSG), so the telemetry provider is switched off here as well.
+provider "modtm" {
+  enabled = false
 }

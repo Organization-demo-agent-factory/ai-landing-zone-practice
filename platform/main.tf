@@ -22,7 +22,7 @@ module "ai_landing_zone" {
       PrivateEndpointSubnet         = { address_prefix = var.subnet_address_prefixes.private_endpoint }
       AIFoundrySubnet               = { address_prefix = var.subnet_address_prefixes.ai_foundry }
       AppGatewaySubnet              = { address_prefix = var.subnet_address_prefixes.app_gateway }
-      APIMSubnet                    = { enabled = false } # the gateway is deployed next to this module, not by it
+      APIMSubnet                    = { address_prefix = var.subnet_address_prefixes.apim } # Developer APIM, Internal
       ContainerAppEnvironmentSubnet = { enabled = false }
       DevOpsBuildSubnet             = { enabled = false }
     }
@@ -36,14 +36,21 @@ module "ai_landing_zone" {
     azure_policy_pe_zone_linking_enabled      = var.pe_dns_registration_by_policy
   }
 
-  # AI gateway: the platform team deploys API Management next to this module, with its own code, because in
-  # platform mode the module's APIM subnet gets no route table (Internal-mode APIM then fails with
-  # 422 ManagementApiRequestFailed on port 3443 when 0.0.0.0/0 is forced through a firewall).
-  # The module still reads these two values when its own gateway is off.
+  # AI gateway: the module's own API Management, deployed in three stages. In platform mode the module gives
+  # APIMSubnet no route table (and has no input for one), and Internal-mode APIM fails with 422
+  # ManagementApiRequestFailed on port 3443 when 0.0.0.0/0 is forced through the firewall. So: stage 1 apply with
+  # apim_deploy = false (the subnet is created), stage 2 the network team attaches the route table
+  # (ApiManagement service tag -> Internet), stage 3 apply with apim_deploy = true and the repository variable
+  # TF_CLI_ARGS_PLAN = -refresh=false (a normal plan would remove the route table, because Terraform doesn't own it).
+  # After stage 3 every normal plan wants to remove it: use the fallback in the guide before the next change.
   apim_definition = {
-    deploy          = false
-    publisher_email = var.apim_publisher_email
-    publisher_name  = var.apim_publisher_name
+    deploy               = var.apim_deploy
+    sku_root             = "Developer" # module default is Premium
+    sku_capacity         = 1           # module default is 3
+    virtual_network_type = "Internal"
+    publisher_email      = var.apim_publisher_email
+    publisher_name       = var.apim_publisher_name
+    managed_identities   = { system_assigned = true } # the gateway needs it later to call Foundry models
   }
 
   # Foundry account and project. No model deployments: the foundation only.
@@ -75,7 +82,6 @@ module "ai_landing_zone" {
 
     cosmosdb_definition = {
       this = {
-        consistency_level = "Session"
         # Key auth stays on for this account in 0.5.3 whatever you set here: the Cosmos module (0.10.0) applies
         # local_authentication_disabled only when SQL databases are defined in Terraform. Audit it with Azure Policy.
         # An empty list makes the module add the paired region (East US for West US 3) as a second location.

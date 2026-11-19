@@ -5,8 +5,11 @@ subscription_id = "<non-prod-ai-subscription-id>"
 tenant_id       = "<tenant-id>"
 location        = "westus3"
 
-resource_group_name = "<rg-name>"   # module creates it; it must not already exist
-name_prefix         = "<prefix>"    # 10 characters or fewer, lowercase letters and digits
+# The module creates this resource group, so it must not already exist.
+resource_group_name = "<rg-name>"
+
+# 10 characters or fewer, lowercase letters and digits.
+name_prefix = "<prefix>"
 
 tags = {
   # Your required tags
@@ -16,11 +19,12 @@ tags = {
 existing_vnet_resource_id   = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>"
 dns_zones_resource_group_id = "/subscriptions/<sub>/resourceGroups/<dns-rg>"
 
-# Prefixes for the subnets the module creates. They must sit inside your VNet and not overlap anything.
+# The four subnets the module creates inside your VNet (your approved subnet plan).
 subnet_address_prefixes = {
-  private_endpoint = "<x.x.x.0/25>"
-  ai_foundry       = "<x.x.x.0/24>"
-  app_gateway      = "<x.x.x.0/26>"
+  private_endpoint = "10.61.1.0/25"
+  ai_foundry       = "10.61.0.0/24"
+  app_gateway      = "10.61.1.128/26"
+  apim             = "10.61.1.192/27"
 }
 
 # true if your Azure Policy adds private endpoint DNS records, false if the module should
@@ -32,4 +36,6 @@ project_description  = "<description>"
 
 apim_publisher_email = "<shared-mailbox@your-domain.com>"
 apim_publisher_name  = "<owner display name>"
-# The module does not build the gateway: API Management is deployed next to it (see main.tf).
+apim_deploy          = false # stage 1; set to true for stage 3 after the route table is attached
+
+enable_telemetry = false

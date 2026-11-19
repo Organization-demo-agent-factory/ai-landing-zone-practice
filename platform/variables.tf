@@ -38,8 +38,9 @@ variable "subnet_address_prefixes" {
     private_endpoint = string
     ai_foundry       = string
     app_gateway      = string
+    apim             = string
   })
-  description = "Prefixes for the three subnets the module creates inside your VNet. Each must sit inside the VNet's address space and not overlap anything else. Suggested sizes: private_endpoint /25, ai_foundry /24, app_gateway /26."
+  description = "Prefixes for the four subnets the module creates inside your VNet. Each must sit inside the VNet's address space and not overlap anything else. Sizes: private_endpoint /25, ai_foundry /24, app_gateway /26, apim /27."
 }
 
 variable "dns_zones_resource_group_id" {
@@ -80,6 +81,12 @@ variable "apim_publisher_name" {
 
 variable "enable_telemetry" {
   type        = bool
-  default     = true
-  description = "AVM telemetry. Set per your policy."
+  default     = false
+  description = "AVM telemetry. Off (customer decision)."
+}
+
+variable "apim_deploy" {
+  type        = bool
+  default     = false
+  description = "Stage switch for the module's API Management: false in stage 1, true in stage 3."
 }
