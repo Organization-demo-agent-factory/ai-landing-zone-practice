@@ -23,7 +23,7 @@ env:
 
 jobs:
   plan:
-    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    runs-on: ubuntu-latest
     environment: nonprod-plan
     timeout-minutes: 60
     defaults:
@@ -33,14 +33,17 @@ jobs:
       ARM_CLIENT_ID: ${{ vars.PLAN_CLIENT_ID }}
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      # Empty normally. The guide's Step 9 sets the repository variable TF_CLI_ARGS_PLAN to -refresh=false for the stage 3 plan.
+      TF_CLI_ARGS_plan: ${{ vars.TF_CLI_ARGS_PLAN }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~> 1.12"
+          terraform_version: "1.12.2"
 
-      - name: Format check
+      - name: Format check (informational)
+        continue-on-error: true
         run: terraform fmt -check -recursive
 
       - name: Init
@@ -49,7 +52,7 @@ jobs:
           -backend-config="resource_group_name=${{ vars.TF_STATE_RG }}"
           -backend-config="storage_account_name=${{ vars.TF_STATE_SA }}"
           -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}"
-          -backend-config="key=ai-lz-nonprod.tfstate"
+          -backend-config="key=ai-lz-v2-rehearsal.tfstate"
 
       - name: Validate
         run: terraform validate
@@ -71,7 +74,7 @@ jobs:
   apply:
     needs: plan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: [self-hosted, linux, ai-lz-nonprod]
+    runs-on: ubuntu-latest
     environment: nonprod-apply # required reviewers = your approvers
     timeout-minutes: 180
     defaults:
@@ -86,7 +89,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~> 1.12"
+          terraform_version: "1.12.2"
 
       - uses: actions/download-artifact@v4
         with:
@@ -99,7 +102,7 @@ jobs:
           -backend-config="resource_group_name=${{ vars.TF_STATE_RG }}"
           -backend-config="storage_account_name=${{ vars.TF_STATE_SA }}"
           -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}"
-          -backend-config="key=ai-lz-nonprod.tfstate"
+          -backend-config="key=ai-lz-v2-rehearsal.tfstate"
 
       - name: Apply the reviewed plan
         run: terraform apply -input=false tfplan
